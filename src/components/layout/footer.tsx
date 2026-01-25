@@ -10,7 +10,7 @@ const footerLinks = {
   ],
   company: [
     { name: "About", href: "/about" },
-    { name: "Contact", href: "mailto:hello@offscriptlearning.com" },
+    { name: "Contact", href: "mailto:support@offscriptlearning.com" },
   ],
   legal: [
     { name: "Privacy Policy", href: "/privacy" },
