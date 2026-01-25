@@ -47,7 +47,7 @@ export default function AboutPage() {
             <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
               <div>
                 <h1 className="heading-display text-4xl text-navy sm:text-5xl">
-                  Hi, I'm Sanchek.
+                  Hi, I'm Julia Yoo.
                 </h1>
                 <p className="mt-6 text-lg leading-relaxed text-muted-foreground">
                   Your guide to confident, natural English. I believe that language learning
