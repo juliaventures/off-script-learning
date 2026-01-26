@@ -1,13 +1,71 @@
 "use client"
 
-import { Bell, Globe, Lock, User } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { Bell, Globe, Lock, User, Loader2, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { supabase } from "@/lib/supabase"
 
 export default function SettingsPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user)
+    })
+  }, [])
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData.session) {
+        throw new Error('Not authenticated')
+      }
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/delete-account`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      )
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete account')
+      }
+
+      localStorage.clear()
+      router.push('/')
+    } catch (error: any) {
+      console.error('Delete account error:', error)
+      alert(error.message || 'Failed to delete account')
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="space-y-8">
       <div>
@@ -34,19 +92,19 @@ export default function SettingsPage() {
               <label className="mb-2 block text-sm font-medium text-navy">
                 Name
               </label>
-              <Input defaultValue="Julia Kim" />
+              <Input defaultValue={user?.user_metadata?.full_name || ""} placeholder="Your name" />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-navy">
                 Email
               </label>
-              <Input defaultValue="julia@example.com" disabled />
+              <Input defaultValue={user?.email || ""} disabled />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-navy">
                 Phone
               </label>
-              <Input defaultValue="+1 (555) 123-4567" />
+              <Input placeholder="+1 (555) 123-4567" />
             </div>
             <div>
               <label className="mb-2 block text-sm font-medium text-navy">
@@ -193,21 +251,48 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between rounded-lg border border-border p-4">
             <div>
               <p className="font-semibold text-navy">Billing</p>
-              <p className="text-sm text-muted-foreground">Manage your payment methods</p>
+              <p className="text-sm text-muted-foreground">Manage your subscription and payment methods</p>
             </div>
             <Button variant="outline" size="sm">Manage</Button>
           </div>
 
           <Separator />
 
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-destructive">Delete Account</p>
-              <p className="text-sm text-muted-foreground">Permanently delete your account and data</p>
+          <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-semibold text-destructive">Delete Account</p>
+                <p className="text-sm text-muted-foreground">Permanently delete your account and all data</p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-destructive border-destructive/50 hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete your account,
+                      subscription, and all your data from our servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      Delete Account
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
-            <Button variant="outline" size="sm" className="text-destructive">
-              Delete
-            </Button>
           </div>
         </CardContent>
       </Card>
